@@ -15,7 +15,7 @@ sys.path.append(BASE_DIR)
 
 class JenkinsJob(object):
     def __init__(self):
-        self.jenkins_server_url = 'http://k8s.jci.beisencorp.com/'
+        self.jenkins_server_url = 'http://k8s.jci.qq.com/'
         self.user_id = 'admin'
         self.api_token = '24c74daa99963167395b57eb9d93cd15'
         self.server = Jenkins(self.jenkins_server_url, username=self.user_id, password=self.api_token)
@@ -53,12 +53,12 @@ def createjob(req):
                 job.deployJob(job_name=deploy_job_name, app_name=appname)
             except:
                 print('Create jenkins job faild!!!')
-            redirect("http://k8s.jenkins.beisencorp.com")
+            redirect("http://k8s.jenkins.qq.com")
 
 
 if __name__ == '__main__':
     jobname = 'Test_Image_Build'
-    giturl = 'http://gitlab.beisencorp.com/DevOps/BeiSen.NetCore.DistributedTransactionControl.git'
-    appname = 'Beisen.DTC.WebApi'
+    giturl = 'http://gitlab.qq.com/test.git'
+    appname = 'Test.WebApi'
     job = JenkinsJob()
     job.buildJob(job_name=jobname,app_name=appname,git_url=giturl)
