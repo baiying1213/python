@@ -1,0 +1,210 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>7</daysToKeep>
+        <numToKeep>7</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.TextParameterDefinition>
+          <name>ENV</name>
+          <description></description>
+          <defaultValue>{&quot;name&quot;:&quot;CMDB_URL&quot;,&quot;value&quot;:&quot;10.22.1.40&quot;}
+{&quot;name&quot;:&quot;JENKINS_URL&quot;,&quot;value&quot;:&quot;10.129.8.155&quot;}</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.1">
+          <name>Images</name>
+          <description></description>
+          <randomName>choice-parameter-866960655778882</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1.44">
+              <script>import groovy.json.JsonSlurper
+def json = new JsonSlurper()
+def http = new URL(&quot;https://devhub.beisencorp.com/api/repositories?project_id=28&quot;).openConnection() as HttpURLConnection
+http.setRequestProperty(&apos;User-Agent&apos;,&apos;groovy-2.4.4&apos;)
+http.setRequestProperty(&apos;Accept&apos;,&apos;application/json&apos;)
+images = json.parseText(http.inputStream.getText(&apos;UTF-8&apos;))
+return images</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1.44">
+              <script>return[&apos;error&apos;]</script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>Template-MicroService-Deploy</projectName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>true</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@2.1">
+          <name>tag</name>
+          <description></description>
+          <randomName>choice-parameter-867607040118176</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1.44">
+              <script>import groovy.json.JsonSlurper
+def json = new JsonSlurper()
+def http = new URL(&quot;https://devhub.beisencorp.com/api/repositories/tags?repo_name=${Images}&quot;).openConnection() as HttpURLConnection
+http.setRequestProperty(&apos;User-Agent&apos;,&apos;groovy-2.4.4&apos;)
+http.setRequestProperty(&apos;Accept&apos;,&apos;application/json&apos;)
+tags= json.parseText(http.inputStream.getText(&apos;UTF-8&apos;))
+return tags</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1.44">
+              <script>return[&apos;error&apos;]</script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>Template-MicroService-Deploy</projectName>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>Images</referencedParameters>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.1">
+          <name>Enviroment</name>
+          <description>deploy envoriment</description>
+          <randomName>choice-parameter-768664618931028</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1.44">
+              <script>return [
+&quot;dev&quot;
+,&quot;test&quot;,
+]</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1.44">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>Template-MicroService-Deploy</projectName>
+          <choiceType>PT_RADIO</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+#Author by zhaohaihua
+set -e
+AppName=
+appname=$(echo ${AppName} | tr &apos;[A-Z]&apos; &apos;[a-z]&apos; | tr &apos;.&apos; &apos;-&apos;)
+NameSpace=microservice
+
+#Deployment.yaml create
+cat &gt; deployment.yaml &lt;&lt; EOF
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: ${appname}
+  namespace: ${NameSpace}
+  labels: {app: ${appname}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: ${appname}}
+  template:
+    metadata:
+      name: ${appname}
+      labels: {app: ${appname}}
+    spec:
+      containers:
+      - name: ${appname}
+        image: devhub.beisencorp.com/microservice/${appname}-${Branch}:${Commit_ID}
+        env:
+        - {&quot;name&quot;:&quot;MASTER_IP&quot;,&quot;value&quot;:&quot;10.22.1.40&quot;}
+        - {&quot;name&quot;:&quot;MASTER_PORT&quot;,&quot;value&quot;:&quot;31800&quot;}
+        - {&quot;name&quot;:&quot;ES_ADDRESS&quot;,&quot;value&quot;:&quot;10.129.238.126:8200&quot;}
+        resources:
+          limits: {cpu: &apos;1&apos;, memory: 1G}
+          requests: {cpu: &apos;200m&apos;, memory: 200Mi}
+        imagePullPolicy: IfNotPresent
+        securityContext: {privileged: false}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+status:
+  observedGeneration: 9
+  replicas: 1
+  updatedReplicas: 1
+  readyReplicas: 1
+  availableReplicas: 1
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: ${appname}
+  namespace: ${NameSpace}
+  labels:
+    app: ${appname}
+spec:
+  ports:
+  - name: tcp-5000-5000-dtcv2
+    protocol: TCP
+    port: 5000
+    targetPort: 5000
+    #nodePort: 31701
+  selector:
+    app: ${appname}
+  type: NodePort
+EOF
+
+#ADD ENV to deployment.yaml
+for line in ${ENV};do
+    sed -i &quot;/env:/a\        - ${line}&quot; deployment.yaml
+done
+
+#Backup deployment.yaml
+cp deployment.yaml ${JENKINS_HOME}/deploy/${BUILD_ID}_deployment.yaml
+
+#Deploy
+if [ ${Enviroment}==&quot;test&quot; ];then
+  Host=&apos;10.129.7.212&apos;
+else
+  Host=&apos;10.129.7.232&apos;
+fi
+scp deployment.yaml ${Host}:/tmp/
+ssh root@${Host} &quot;/opt/kubernetes/bin/kubectl apply -f /tmp/deployment.yaml&quot;</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.34">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>

@@ -1,0 +1,98 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>7</daysToKeep>
+        <numToKeep>7</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition plugin="git-parameter@0.9.4">
+          <name>Branch</name>
+          <description></description>
+          <uuid>332e20f6-fbc6-41db-91ed-eb9b69fa9b65</uuid>
+          <type>PT_BRANCH</type>
+          <branch></branch>
+          <tagFilter>*</tagFilter>
+          <branchFilter>.*</branchFilter>
+          <sortMode>NONE</sortMode>
+          <defaultValue></defaultValue>
+          <selectedValue>NONE</selectedValue>
+          <quickFilterEnabled>false</quickFilterEnabled>
+          <listSize>5</listSize>
+        </net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.9.1">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>GitURL</url>
+        <credentialsId>586796e2-280e-4846-b234-180ef8233392</credentialsId>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>**</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+#Author by zhaohaihua
+set -e
+Commit_ID=`git rev-parse --short HEAD`
+Branch=`echo ${Branch}|sed &apos;s/origin\///g&apos;`
+appname=$(echo AppName | tr &apos;[A-Z]&apos; &apos;[a-z]&apos; | tr &apos;.&apos; &apos;-&apos;)
+BaseImage=devhub.beisencorp.com/microservice/dotnet:2.1-aspnetcore-runtime
+
+#Dockerfile Create
+cat &gt; Dockerfile &lt;&lt; EOF
+FROM ${BaseImage}
+COPY . /publish
+WORKDIR /publish
+RUN chmod +x AppName.dll
+EXPOSE 5000
+ENTRYPOINT [&quot;dotnet&quot;,&quot;./AppName.dll&quot;]
+EOF
+
+#Dotnet Build
+/opt/dotnet/dotnet restore --configfile /opt/dotnet/nuget.config
+/opt/dotnet/dotnet publish  AppName/AppName.csproj -r centos.7-x64 -c Release
+#chmod +x AppName/bin/Release/netcoreapp2.1/centos.7-x64/publish/AppName.dll
+
+#Build Image and push harbor
+cp Dockerfile AppName/bin/Release/netcoreapp2.1/centos.7-x64/publish/
+docker build -t devhub.beisencorp.com/microservice/${appname}-${Branch}:${Commit_ID} AppName/bin/Release/netcoreapp2.1/centos.7-x64/publish/
+docker push devhub.beisencorp.com/microservice/${appname}-${Branch}:${Commit_ID}
+
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.34">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>
